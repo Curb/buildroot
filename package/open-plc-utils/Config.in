@@ -1,0 +1,5 @@
+config BR2_PACKAGE_OPEN_PLC_UTILS
+	bool "open-plc-utils"
+	help
+	  This package is an open version of the Qualcomm Atheros Powerline 
+	  Toolkit. 

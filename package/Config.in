@@ -355,6 +355,7 @@ endif
 	source "package/on2-8170-modules/Config.in"
 	source "package/open2300/Config.in"
 	source "package/openocd/Config.in"
+	source "package/open-plc-utils/Config.in"
 	source "package/openpowerlink/Config.in"
 	source "package/owl-linux/Config.in"
 	source "package/parted/Config.in"

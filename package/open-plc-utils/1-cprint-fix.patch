@@ -1,0 +1,14 @@
+diff --git a/mme/ARPCPrint.c b/mme/ARPCPrint.c
+index e737f14..1bd7342 100644
+--- a/mme/ARPCPrint.c
++++ b/mme/ARPCPrint.c
+@@ -108,7 +108,7 @@ void ARPCPrint (FILE * fp, void const * memory, size_t extent)
+                argp++;
+        }
+ 
+-#if defined (__UCLIBC__) 
++#if 1 
+ 
+ /*
+  *     This is a simple fix to work around uclibc implementation issue with variable arugment lists; We are
+
