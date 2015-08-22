@@ -11,14 +11,12 @@ UCLIBC_LICENSE_FILES = COPYING.LIB
 
 ifeq ($(BR2_UCLIBC_VERSION_SNAPSHOT),y)
 UCLIBC_SITE = http://www.uclibc.org/downloads/snapshots
-else ifeq ($(BR2_UCLIBC_NG_VERSION_1_0_0),y)
-UCLIBC_SITE = http://downloads.uclibc-ng.org/releases/$(UCLIBC_VERSION)/
+BR_NO_CHECK_HASH_FOR += $(UCLIBC_SOURCE)
+else ifeq ($(BR2_UCLIBC_VERSION_NG),y)
+UCLIBC_SITE = http://downloads.uclibc-ng.org/releases/$(UCLIBC_VERSION)
 UCLIBC_SOURCE = uClibc-ng-$(UCLIBC_VERSION).tar.xz
 else ifeq ($(BR2_UCLIBC_VERSION_ARC_GIT),y)
 UCLIBC_SITE = $(call github,foss-for-synopsys-dwc-arc-processors,uClibc,$(UCLIBC_VERSION))
-UCLIBC_SOURCE = uClibc-$(UCLIBC_VERSION).tar.gz
-else ifeq ($(BR2_UCLIBC_VERSION_XTENSA_GIT),y)
-UCLIBC_SITE = git://git.busybox.net/uClibc
 UCLIBC_SOURCE = uClibc-$(UCLIBC_VERSION).tar.gz
 else
 UCLIBC_SITE = http://www.uclibc.org/downloads
@@ -41,6 +39,7 @@ UCLIBC_CONFIG_FILE = $(call qstrip,$(BR2_UCLIBC_CONFIG))
 endif
 
 UCLIBC_KCONFIG_FILE = $(UCLIBC_CONFIG_FILE)
+UCLIBC_KCONFIG_FRAGMENT_FILES = $(call qstrip,$(BR2_UCLIBC_CONFIG_FRAGMENT_FILES))
 
 UCLIBC_KCONFIG_OPTS = \
 	$(UCLIBC_MAKE_FLAGS) \
@@ -71,6 +70,13 @@ UCLIBC_ARC_TYPE = CONFIG_$(call qstrip,$(BR2_UCLIBC_ARC_TYPE))
 define UCLIBC_ARC_TYPE_CONFIG
 	$(call KCONFIG_ENABLE_OPT,$(UCLIBC_ARC_TYPE),$(@D)/.config)
 endef
+
+UCLIBC_ARC_PAGE_SIZE = CONFIG_ARC_PAGE_SIZE_$(call qstrip,$(BR2_ARC_PAGE_SIZE))
+define UCLIBC_ARC_PAGE_SIZE_CONFIG
+	$(SED) '/CONFIG_ARC_PAGE_SIZE_*/d' $(@D)/.config
+	$(call KCONFIG_ENABLE_OPT,$(UCLIBC_ARC_PAGE_SIZE),$(@D)/.config)
+endef
+
 endif # arc
 
 #
@@ -157,45 +163,6 @@ endef
 endif # powerpc
 
 #
-# Blackfin definitions
-#
-
-ifeq ($(UCLIBC_TARGET_ARCH),bfin)
-ifeq ($(BR2_BINFMT_FDPIC),y)
-define UCLIBC_BFIN_CONFIG
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FLAT,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FLAT_SEP_DATA,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_SHARED_FLAT,$(@D)/.config)
-	$(call KCONFIG_ENABLE_OPT,UCLIBC_FORMAT_FDPIC_ELF,$(@D)/.config)
-endef
-endif
-ifeq ($(BR2_BINFMT_FLAT_ONE),y)
-define UCLIBC_BFIN_CONFIG
-	$(call KCONFIG_ENABLE_OPT,UCLIBC_FORMAT_FLAT,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FLAT_SEP_DATA,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_SHARED_FLAT,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FDPIC_ELF,$(@D)/.config)
-endef
-endif
-ifeq ($(BR2_BINFMT_FLAT_SEP_DATA),y)
-define UCLIBC_BFIN_CONFIG
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FLAT,$(@D)/.config)
-	$(call KCONFIG_ENABLE_OPT,UCLIBC_FORMAT_FLAT_SEP_DATA,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_SHARED_FLAT,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FDPIC_ELF,$(@D)/.config)
-endef
-endif
-ifeq ($(BR2_BINFMT_FLAT_SHARED),y)
-define UCLIBC_BFIN_CONFIG
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FLAT,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FLAT_SEP_DATA,$(@D)/.config)
-	$(call KCONFIG_ENABLE_OPT,UCLIBC_FORMAT_SHARED_FLAT,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_FORMAT_FDPIC_ELF,$(@D)/.config)
-endef
-endif
-endif # bfin
-
-#
 # x86 definitions
 #
 ifeq ($(UCLIBC_TARGET_ARCH),i386)
@@ -229,16 +196,9 @@ endif
 # Largefile
 #
 
-ifeq ($(BR2_TOOLCHAIN_BUILDROOT_LARGEFILE),y)
 define UCLIBC_LARGEFILE_CONFIG
 	$(call KCONFIG_ENABLE_OPT,UCLIBC_HAS_LFS,$(@D)/.config)
 endef
-else
-define UCLIBC_LARGEFILE_CONFIG
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_HAS_LFS,$(@D)/.config)
-	$(call KCONFIG_DISABLE_OPT,UCLIBC_HAS_FOPEN_LARGEFILE_MODE,$(@D)/.config)
-endef
-endif
 
 #
 # MMU
@@ -258,11 +218,7 @@ endif
 # IPv6
 #
 
-ifeq ($(BR2_TOOLCHAIN_BUILDROOT_INET_IPV6),y)
 UCLIBC_IPV6_CONFIG = $(call KCONFIG_ENABLE_OPT,UCLIBC_HAS_IPV6,$(@D)/.config)
-else
-UCLIBC_IPV6_CONFIG = $(call KCONFIG_DISABLE_OPT,UCLIBC_HAS_IPV6,$(@D)/.config)
-endif
 
 #
 # RPC
@@ -418,6 +374,7 @@ define UCLIBC_KCONFIG_FIXUP_CMDS
 	$(call KCONFIG_SET_OPT,SHARED_LIB_LOADER_PREFIX,"/lib",$(@D)/.config)
 	$(UCLIBC_MMU_CONFIG)
 	$(UCLIBC_ARC_TYPE_CONFIG)
+	$(UCLIBC_ARC_PAGE_SIZE_CONFIG)
 	$(UCLIBC_ARM_ABI_CONFIG)
 	$(UCLIBC_ARM_BX_CONFIG)
 	$(UCLIBC_MIPS_ABI_CONFIG)
@@ -425,7 +382,6 @@ define UCLIBC_KCONFIG_FIXUP_CMDS
 	$(UCLIBC_SH_TYPE_CONFIG)
 	$(UCLIBC_SPARC_TYPE_CONFIG)
 	$(UCLIBC_POWERPC_TYPE_CONFIG)
-	$(UCLIBC_BFIN_CONFIG)
 	$(UCLIBC_X86_TYPE_CONFIG)
 	$(UCLIBC_ENDIAN_CONFIG)
 	$(UCLIBC_LARGEFILE_CONFIG)
@@ -482,7 +438,7 @@ endif
 # interpreter, but since uClibc-ng version is 1.0.0, it generates
 # ld{64,}-uClibc.so.1. In order to avoid changing gcc, we simply
 # create the necessary symbolic links here.
-ifeq ($(BR2_UCLIBC_NG_VERSION_1_0_0),y)
+ifeq ($(BR2_UCLIBC_VERSION_NG),y)
 define UCLIBC_INSTALL_LDSO_SYMLINKS
 	if [ -e $(TARGET_DIR)/lib/ld64-uClibc.so.1 ]; then \
 		(cd $(TARGET_DIR)/lib;ln -sf ld64-uClibc.so.1 ld64-uClibc.so.0) \
@@ -525,5 +481,13 @@ define UCLIBC_INSTALL_STAGING_CMDS
 		install_runtime install_dev
 	$(UCLIBC_INSTALL_UTILS_STAGING)
 endef
+
+# Checks to give errors that the user can understand
+# Must be before we call to kconfig-package
+ifeq ($(BR2_PACKAGE_UCLIBC)$(BR_BUILDING),yy)
+ifeq ($(call qstrip,$(BR2_UCLIBC_CONFIG)),)
+$(error No uClibc configuration file specified, check your BR2_UCLIBC_CONFIG setting)
+endif
+endif
 
 $(eval $(kconfig-package))

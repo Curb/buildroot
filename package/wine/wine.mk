@@ -6,17 +6,29 @@
 
 WINE_VERSION = 1.6.2
 WINE_SOURCE = wine-$(WINE_VERSION).tar.bz2
-WINE_SITE = http://downloads.sourceforge.net/project/wine/Source/
+WINE_SITE = http://downloads.sourceforge.net/project/wine/Source
 WINE_LICENSE = LGPLv2.1+
 WINE_LICENSE_FILES = COPYING.LIB LICENSE
 WINE_DEPENDENCIES = host-bison host-flex host-wine
+# For 0002-detect-ncursesw.patch
+WINE_AUTORECONF = YES
 
 # Wine needs its own directory structure and tools for cross compiling
 WINE_CONF_OPTS = \
 	--with-wine-tools=../host-wine-$(WINE_VERSION) \
 	--disable-tests \
 	--disable-win64 \
-	--without-opengl
+	--without-capi \
+	--without-coreaudio \
+	--without-gettext \
+	--without-gettextpo \
+	--without-gphoto \
+	--without-gsm \
+	--without-hal \
+	--without-openal \
+	--without-opencl \
+	--without-osmesa \
+	--without-oss
 
 # Wine uses a wrapper around gcc, and uses the value of --host to
 # construct the filename of the gcc to call.  But for external
@@ -27,6 +39,13 @@ WINE_CONF_OPTS = \
 # the external toolchain, not the one we compute in GNU_TARGET_NAME.
 ifeq ($(BR2_TOOLCHAIN_EXTERNAL),y)
 WINE_CONF_OPTS += TARGETFLAGS="-b $(call qstrip,$(BR2_TOOLCHAIN_EXTERNAL_PREFIX))"
+endif
+
+ifeq ($(BR2_PACKAGE_ALSA_LIB)$(BR2_PACKAGE_ALSA_LIB_SEQ)$(BR2_PACKAGE_ALSA_LIB_RAWMIDI),yyy)
+WINE_CONF_OPTS += --with-alsa
+WINE_DEPENDENCIES += alsa-lib
+else
+WINE_CONF_OPTS += --without-alsa
 endif
 
 ifeq ($(BR2_PACKAGE_CUPS),y)
@@ -89,6 +108,13 @@ else
 WINE_CONF_OPTS += --without-cms
 endif
 
+ifeq ($(BR2_PACKAGE_HAS_LIBGL),y)
+WINE_CONF_OPTS += --with-opengl
+WINE_DEPENDENCIES += libgl
+else
+WINE_CONF_OPTS += --without-opengl
+endif
+
 ifeq ($(BR2_PACKAGE_LIBGLU),y)
 WINE_CONF_OPTS += --with-glu
 WINE_DEPENDENCIES += libglu
@@ -138,9 +164,17 @@ else
 WINE_CONF_OPTS += --without-curses
 endif
 
+ifeq ($(BR2_PACKAGE_OPENLDAP),y)
+WINE_CONF_OPTS += --with-ldap
+WINE_DEPENDENCIES += openldap
+else
+WINE_CONF_OPTS += --without-ldap
+endif
+
 ifeq ($(BR2_PACKAGE_SANE_BACKENDS),y)
 WINE_CONF_OPTS += --with-sane
 WINE_DEPENDENCIES += sane-backends
+WINE_CONF_ENV += SANE_CONFIG=$(STAGING_DIR)/usr/bin/sane-config
 else
 WINE_CONF_OPTS += --without-sane
 endif
@@ -171,6 +205,13 @@ WINE_CONF_OPTS += --with-xcursor
 WINE_DEPENDENCIES += xlib_libXcursor
 else
 WINE_CONF_OPTS += --without-xcursor
+endif
+
+ifeq ($(BR2_PACKAGE_XLIB_LIBXEXT),y)
+WINE_CONF_OPTS += --with-xshape --with-xshm
+WINE_DEPENDENCIES += xlib_libXext
+else
+WINE_CONF_OPTS += --without-xshape --without-xshm
 endif
 
 ifeq ($(BR2_PACKAGE_XLIB_LIBXI),y)
@@ -215,6 +256,10 @@ else
 WINE_CONF_OPTS += --without-zlib
 endif
 
+# host-gettext is essential for .po file support in host-wine wrc
+HOST_WINE_DEPENDENCIES += host-gettext
+HOST_WINE_CONF_OPTS += --with-gettext --with-gettextpo
+
 # Wine needs to enable 64-bit build tools on 64-bit host
 ifeq ($(HOSTARCH),x86_64)
 HOST_WINE_CONF_OPTS += --enable-win64
@@ -252,8 +297,6 @@ HOST_WINE_CONF_OPTS += \
 	--without-curses \
 	--without-dbus \
 	--without-fontconfig \
-	--without-gettext \
-	--without-gettextpo \
 	--without-gphoto \
 	--without-glu \
 	--without-gnutls \
@@ -263,7 +306,6 @@ HOST_WINE_CONF_OPTS += \
 	--without-jpeg \
 	--without-ldap \
 	--without-mpg123 \
-	--without-netapi \
 	--without-openal \
 	--without-opencl \
 	--without-opengl \
