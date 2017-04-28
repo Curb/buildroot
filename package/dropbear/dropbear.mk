@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-DROPBEAR_VERSION = 2015.71
+DROPBEAR_VERSION = 2016.74
 DROPBEAR_SITE = http://matt.ucc.asn.au/dropbear/releases
 DROPBEAR_SOURCE = dropbear-$(DROPBEAR_VERSION).tar.bz2
 DROPBEAR_LICENSE = MIT, BSD-2c-like, BSD-2c
@@ -25,6 +25,12 @@ DROPBEAR_MAKE = \
 ifeq ($(BR2_STATIC_LIBS),y)
 DROPBEAR_MAKE += STATIC=1
 endif
+
+define DROPBEAR_FIX_LOCAL_IDENT
+	$(SED) 's,^#define LOCAL_IDENT "SSH-2.0-dropbear_" DROPBEAR_VERSION,#define LOCAL_IDENT "SSH-2.0-ssh",g' $(@D)/sysoptions.h
+endef
+
+DROPBEAR_POST_EXTRACT_HOOKS += DROPBEAR_FIX_LOCAL_IDENT
 
 define DROPBEAR_FIX_XAUTH
 	$(SED) 's,^#define XAUTH_COMMAND.*/xauth,#define XAUTH_COMMAND "/usr/bin/xauth,g' $(@D)/options.h
